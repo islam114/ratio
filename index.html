@@ -211,7 +211,7 @@ const DB={
  async saveOrder(o){
   const items=o.items.map(i=>{const p=P(i.id);return{name:p.ar,color:i.c,size:i.s,qty:i.q,price:p.price}}),b={name:o.name,phone:o.phone,gov:o.gov,address:o.address,notes:o.notes,items,total:o.total};
   if(!sb){const a=store.get("orders",[]);a.push({...b,id:Date.now(),created_at:new Date().toISOString(),status:"new"});store.set("orders",a);return}
-  const{error}=await sb.from("orders").insert({...b,user_id:me.user?me.user.id:null});if(error)console.warn(error)}
+  const{error}=await sb.from("orders").insert({...b,user_id:me.user?me.user.id:null});if(error)throw error}
 };
 let lang=store.get("lang","ar"),cart=store.get("cart",[]),pick={},list=DEFAULTS;
 const t=k=>T[lang][k],money=n=>Number(n).toLocaleString(lang==="ar"?"ar-EG":"en-US")+" "+CONFIG.currency[lang];
@@ -259,7 +259,7 @@ $("#form").addEventListener("submit",async e=>{
   if(!n||!g||!a||!cart.length){$("#ef").textContent=t("badAll");return}
   if($("#rem").checked)store.set("me",{n,p,g,a});
   const m=t("msg"),lines=cart.map(i=>{const pr=P(i.id);return `• ${pr[lang]||pr.ar} — ${i.c} / ${i.s} × ${i.q} = ${money(pr.price*i.q)}`});
-  DB.saveOrder({date:new Date().toISOString(),name:n,phone:p,gov:g,address:a,notes:no,items:cart,total:total(),status:"new"});
+  try{await DB.saveOrder({date:new Date().toISOString(),name:n,phone:p,gov:g,address:a,notes:no,items:cart,total:total(),status:"new"})}catch(err){console.error("Supabase order save failed:",err);$("#ef").textContent="حصلت مشكلة أثناء حفظ الطلب. حاول مرة تانية.";return}
   const text=[m.hi,...lines,"",`${m.t}: ${money(total())}`,`${m.n}: ${n}`,`${m.p}: ${p}`,`${m.g}: ${g}`,`${m.a}: ${a}`,no&&`${m.no}: ${no}`].filter(x=>x!==""&&x!==undefined).join("\n");
   window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(text)}`,"_blank");
   cart=[];saveCart();$("#dlg").close();
